@@ -3,11 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#0a0a12">
+<meta name="theme-color" content="#06060c">
 <title>Устройства рядом</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-
   html, body {
     min-height: 100%;
     font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
@@ -16,81 +15,126 @@
     overflow-x: hidden;
   }
 
-  /* === Анимированный градиентный фон === */
+  /* === Живой фон === */
   .bg {
-    position: fixed;
-    inset: -50%;
-    z-index: -2;
+    position: fixed; inset: -60%; z-index: -3;
     background:
-      radial-gradient(circle at 20% 20%, #1e3a8a 0%, transparent 45%),
-      radial-gradient(circle at 80% 30%, #7c3aed 0%, transparent 45%),
-      radial-gradient(circle at 50% 80%, #0891b2 0%, transparent 50%),
-      radial-gradient(circle at 90% 90%, #db2777 0%, transparent 45%);
-    filter: blur(70px);
-    opacity: 0.75;
-    animation: bgShift 24s ease-in-out infinite alternate;
+      radial-gradient(circle at 15% 25%, #1e3a8a 0%, transparent 40%),
+      radial-gradient(circle at 85% 20%, #7c3aed 0%, transparent 40%),
+      radial-gradient(circle at 30% 80%, #0891b2 0%, transparent 45%),
+      radial-gradient(circle at 90% 90%, #db2777 0%, transparent 40%);
+    filter: blur(80px);
+    opacity: 0.7;
+    animation: bgShift 26s ease-in-out infinite alternate;
   }
   @keyframes bgShift {
     0%   { transform: translate(0,0) scale(1) rotate(0deg); }
     50%  { transform: translate(4%, -3%) scale(1.15) rotate(6deg); }
     100% { transform: translate(-3%, 4%) scale(1.05) rotate(-4deg); }
   }
-
-  /* Шум поверх фона */
   .noise {
+    position: fixed; inset: 0; z-index: -2; pointer-events: none;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/></filter><rect width='120' height='120' filter='url(%23n)' opacity='0.4'/></svg>");
+    opacity: 0.05; mix-blend-mode: overlay;
+  }
+  .grid-lines {
     position: fixed; inset: 0; z-index: -1; pointer-events: none;
-    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/></filter><rect width='120' height='120' filter='url(%23n)' opacity='0.35'/></svg>");
-    opacity: 0.06;
-    mix-blend-mode: overlay;
+    background-image:
+      linear-gradient(rgba(139,92,246,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(139,92,246,0.04) 1px, transparent 1px);
+    background-size: 44px 44px;
+    mask: radial-gradient(ellipse at center, #000 0%, transparent 75%);
+    -webkit-mask: radial-gradient(ellipse at center, #000 0%, transparent 75%);
   }
 
   .wrap {
-    max-width: 520px;
+    max-width: 560px;
     margin: 0 auto;
-    padding: 28px 20px calc(40px + env(safe-area-inset-bottom));
+    padding: 26px 18px calc(50px + env(safe-area-inset-bottom));
     position: relative;
   }
 
-  /* === Заголовок === */
-  header { text-align: center; margin-bottom: 28px; animation: fadeDown 0.7s cubic-bezier(0.16,1,0.3,1) both; }
+  /* === Шапка === */
+  header {
+    text-align: center;
+    margin-bottom: 22px;
+    animation: fadeDown 0.7s cubic-bezier(0.16,1,0.3,1) both;
+  }
   @keyframes fadeDown { from { opacity:0; transform: translateY(-20px); } to { opacity:1; transform:none; } }
 
   h1 {
-    font-size: 26px;
-    font-weight: 800;
-    letter-spacing: -0.5px;
-    background: linear-gradient(120deg, #fff 0%, #a5b4fc 40%, #67e8f9 70%, #fff 100%);
-    background-size: 200% auto;
-    -webkit-background-clip: text;
-    background-clip: text;
+    font-size: 27px; font-weight: 800;
+    letter-spacing: -0.7px;
+    background: linear-gradient(120deg, #fff 0%, #a5b4fc 30%, #67e8f9 55%, #f0abfc 75%, #fff 100%);
+    background-size: 220% auto;
+    -webkit-background-clip: text; background-clip: text;
     -webkit-text-fill-color: transparent;
-    animation: shine 5s linear infinite;
+    animation: shine 6s linear infinite;
   }
-  @keyframes shine { to { background-position: 200% center; } }
+  @keyframes shine { to { background-position: 220% center; } }
 
   .subtitle {
-    margin-top: 8px; font-size: 13px; color: #9ca3af; line-height: 1.5;
+    margin-top: 6px; font-size: 12.5px;
+    color: #94a3b8; letter-spacing: 0.2px;
   }
 
-  /* === Кнопка === */
+  /* === Панель статов === */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-bottom: 16px;
+    animation: fadeDown 0.8s 0.1s cubic-bezier(0.16,1,0.3,1) both;
+  }
+  .stat {
+    padding: 12px 8px;
+    border-radius: 14px;
+    background: rgba(28,28,40,0.55);
+    backdrop-filter: blur(16px) saturate(150%);
+    -webkit-backdrop-filter: blur(16px) saturate(150%);
+    border: 1px solid rgba(255,255,255,0.07);
+    text-align: center;
+  }
+  .stat .num {
+    font-size: 22px; font-weight: 800;
+    background: linear-gradient(180deg, #fff, #a5b4fc);
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent;
+    line-height: 1;
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .stat .num.bump { transform: scale(1.35); }
+  .stat .lbl {
+    display: block; margin-top: 5px;
+    font-size: 10.5px; color: #94a3b8;
+    text-transform: uppercase; letter-spacing: 0.5px;
+    font-weight: 600;
+  }
+
+  /* === Кнопки === */
+  .actions {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 10px;
+    margin-bottom: 14px;
+    animation: fadeDown 0.9s 0.15s cubic-bezier(0.16,1,0.3,1) both;
+  }
   .btn {
     position: relative;
-    width: 100%;
-    padding: 18px 24px;
-    border: 0;
-    border-radius: 18px;
-    font-size: 16px;
-    font-weight: 700;
+    padding: 18px 22px;
+    border: 0; border-radius: 18px;
+    font-size: 16px; font-weight: 700;
     color: #fff;
-    background: linear-gradient(135deg, #6366f1, #8b5cf6 50%, #ec4899);
-    background-size: 200% 200%;
-    cursor: pointer;
-    overflow: hidden;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6 45%, #ec4899);
+    background-size: 220% 220%;
+    cursor: pointer; overflow: hidden;
     box-shadow:
-      0 10px 30px -8px rgba(139, 92, 246, 0.6),
-      inset 0 1px 0 rgba(255,255,255,0.25);
-    transition: transform 0.25s cubic-bezier(0.16,1,0.3,1), box-shadow 0.3s;
-    animation: btnGlow 4s ease-in-out infinite;
+      0 12px 32px -10px rgba(139,92,246,0.65),
+      0 0 0 1px rgba(255,255,255,0.06) inset,
+      0 1px 0 rgba(255,255,255,0.25) inset;
+    transition: transform 0.22s cubic-bezier(0.16,1,0.3,1), box-shadow 0.3s, opacity 0.3s;
+    animation: btnGlow 5s ease-in-out infinite;
+    font-family: inherit;
   }
   @keyframes btnGlow {
     0%,100% { background-position: 0% 50%; }
@@ -99,101 +143,114 @@
   .btn:active { transform: scale(0.97); }
   .btn:disabled {
     background: linear-gradient(135deg, #374151, #1f2937);
-    box-shadow: none;
-    animation: none;
+    box-shadow: none; animation: none; opacity: 0.85;
     cursor: default;
-    opacity: 0.85;
   }
-
-  /* Блик по кнопке */
   .btn::after {
     content: "";
     position: absolute; top: 0; left: -60%;
     width: 40%; height: 100%;
-    background: linear-gradient(120deg, transparent, rgba(255,255,255,0.4), transparent);
+    background: linear-gradient(120deg, transparent, rgba(255,255,255,0.45), transparent);
     transform: skewX(-20deg);
-    animation: sweep 3.2s ease-in-out infinite;
+    animation: sweep 3.6s ease-in-out infinite;
   }
   .btn:disabled::after { display: none; }
   @keyframes sweep {
     0%   { left: -60%; }
-    60%  { left: 130%; }
+    55%  { left: 130%; }
     100% { left: 130%; }
   }
+
+  .btn-icon {
+    width: 58px; height: 58px;
+    display: flex; align-items: center; justify-content: center;
+    border: 1px solid rgba(255,255,255,0.1);
+    background: rgba(28,28,40,0.7);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-radius: 18px;
+    color: #cbd5e1;
+    font-size: 20px;
+    cursor: pointer;
+    transition: transform 0.2s, background 0.3s, color 0.3s, opacity 0.3s;
+  }
+  .btn-icon:active { transform: scale(0.92); }
+  .btn-icon:disabled { opacity: 0.35; cursor: default; }
+  .btn-icon.danger:active { background: rgba(239,68,68,0.2); color: #f87171; }
 
   /* === Радар === */
   .radar {
     display: none;
-    margin: 26px auto;
-    width: 160px; height: 160px;
+    margin: 22px auto 6px;
+    width: 150px; height: 150px;
     position: relative;
   }
-  .radar.on { display: block; animation: fadeIn 0.4s ease both; }
-  @keyframes fadeIn { from { opacity:0; transform: scale(0.9); } to { opacity:1; transform:none; } }
+  .radar.on { display: block; animation: fadeIn 0.45s ease both; }
+  @keyframes fadeIn { from { opacity:0; transform: scale(0.85); } to { opacity:1; transform:none; } }
 
   .radar .ring {
     position: absolute; inset: 0;
     border-radius: 50%;
-    border: 1.5px solid rgba(139, 92, 246, 0.55);
+    border: 1.5px solid rgba(139,92,246,0.55);
     animation: pulse 2.4s cubic-bezier(0.4,0,0.2,1) infinite;
   }
   .radar .ring:nth-child(2) { animation-delay: 0.6s; }
   .radar .ring:nth-child(3) { animation-delay: 1.2s; }
   .radar .ring:nth-child(4) { animation-delay: 1.8s; }
   @keyframes pulse {
-    0%   { transform: scale(0.3); opacity: 1; }
-    100% { transform: scale(1);   opacity: 0; }
+    0%   { transform: scale(0.25); opacity: 1; }
+    100% { transform: scale(1);    opacity: 0; }
   }
   .radar .core {
-    position: absolute;
-    top: 50%; left: 50%;
+    position: absolute; top: 50%; left: 50%;
     width: 14px; height: 14px;
     margin: -7px 0 0 -7px;
     border-radius: 50%;
-    background: radial-gradient(circle, #a5b4fc, #6366f1);
-    box-shadow: 0 0 24px 6px rgba(139, 92, 246, 0.7);
+    background: radial-gradient(circle, #c4b5fd, #6366f1);
+    box-shadow: 0 0 26px 8px rgba(139,92,246,0.75);
     animation: coreBlink 1.4s ease-in-out infinite;
   }
   @keyframes coreBlink {
     0%,100% { transform: scale(1);   opacity: 1; }
-    50%     { transform: scale(1.4); opacity: 0.6; }
+    50%     { transform: scale(1.45); opacity: 0.55; }
   }
-  /* Вращающийся луч */
   .radar .sweep {
     position: absolute; inset: 0;
     border-radius: 50%;
-    background: conic-gradient(from 0deg, transparent 0deg, rgba(139,92,246,0.35) 40deg, transparent 80deg);
+    background: conic-gradient(from 0deg, transparent 0deg, rgba(139,92,246,0.4) 40deg, transparent 90deg);
     animation: rotate 2s linear infinite;
-    mask: radial-gradient(circle, transparent 0%, #000 40%);
-    -webkit-mask: radial-gradient(circle, transparent 0%, #000 40%);
+    mask: radial-gradient(circle, transparent 0%, #000 38%);
+    -webkit-mask: radial-gradient(circle, transparent 0%, #000 38%);
   }
   @keyframes rotate { to { transform: rotate(360deg); } }
 
-  /* === Статус === */
   .status {
-    text-align: center; font-size: 13.5px; color: #9ca3af;
-    min-height: 20px;
-    margin-bottom: 8px;
-    transition: opacity 0.3s;
+    text-align: center; font-size: 13px; color: #94a3b8;
+    min-height: 20px; margin: 6px 0 4px;
+    transition: color 0.3s;
   }
-  .status.ok { color: #4ade80; }
+  .status.ok  { color: #4ade80; }
   .status.err { color: #f87171; }
 
-  /* === Карточки устройств === */
-  .list { display: flex; flex-direction: column; gap: 12px; }
+  /* === Список устройств === */
+  .list {
+    display: flex; flex-direction: column; gap: 12px;
+    margin-top: 8px;
+    position: relative;
+  }
 
   .dev {
     position: relative;
-    padding: 16px 18px;
+    padding: 16px 18px 14px;
     border-radius: 18px;
-    background: rgba(28, 28, 40, 0.55);
+    background: rgba(28,28,40,0.55);
     backdrop-filter: blur(18px) saturate(160%);
     -webkit-backdrop-filter: blur(18px) saturate(160%);
     border: 1px solid rgba(255,255,255,0.08);
-    box-shadow: 0 8px 24px -10px rgba(0,0,0,0.6);
+    box-shadow: 0 10px 28px -12px rgba(0,0,0,0.7);
     overflow: hidden;
-    animation: cardIn 0.55s cubic-bezier(0.16,1,0.3,1) both;
-    transition: transform 0.25s, border-color 0.25s, background 0.3s;
+    will-change: transform;
+    transition: border-color 0.3s, background 0.3s, box-shadow 0.3s;
   }
   .dev::before {
     content: "";
@@ -201,72 +258,89 @@
     width: 3px;
     background: linear-gradient(180deg, #8b5cf6, #ec4899, #06b6d4);
     opacity: 0.9;
+    transition: opacity 0.4s;
   }
-  .dev:hover, .dev:active {
-    transform: translateY(-2px);
-    border-color: rgba(139,92,246,0.5);
-    background: rgba(36, 36, 54, 0.7);
+  .dev.stale::before { opacity: 0.25; }
+  .dev.fresh {
+    animation: cardIn 0.65s cubic-bezier(0.16,1,0.3,1) both;
   }
   @keyframes cardIn {
-    from { opacity: 0; transform: translateY(16px) scale(0.97); }
-    to   { opacity: 1; transform: none; }
+    from { opacity: 0; transform: translateY(-14px) scale(0.96); filter: blur(6px); }
+    to   { opacity: 1; transform: none; filter: blur(0); }
+  }
+  /* Вспышка при повторном выборе уже добавленного */
+  .dev.flash { animation: flash 0.9s ease-out; }
+  @keyframes flash {
+    0%   { box-shadow: 0 0 0 0 rgba(139,92,246,0.65); }
+    100% { box-shadow: 0 0 0 22px rgba(139,92,246,0); }
   }
 
-  .dev .row1 {
+  .row1 {
     display: flex; align-items: center; justify-content: space-between;
-    gap: 10px; margin-bottom: 8px;
+    gap: 10px; margin-bottom: 6px;
   }
-  .dev .name {
+  .name {
     font-weight: 700; font-size: 15.5px;
     color: #fff;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    flex: 1;
   }
-  .dev .badge {
-    flex-shrink: 0;
-    font-size: 11px; font-weight: 700;
+  .live {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 10px; font-weight: 700; letter-spacing: 0.6px;
     padding: 4px 9px; border-radius: 999px;
     background: rgba(34,197,94,0.15);
     color: #4ade80;
     border: 1px solid rgba(34,197,94,0.3);
+    flex-shrink: 0;
+    transition: all 0.3s;
   }
-  .dev .badge.mid { background: rgba(234,179,8,0.15); color: #facc15; border-color: rgba(234,179,8,0.3); }
-  .dev .badge.far { background: rgba(239,68,68,0.15); color: #f87171; border-color: rgba(239,68,68,0.3); }
-  .dev .badge.na  { background: rgba(148,163,184,0.15); color: #94a3b8; border-color: rgba(148,163,184,0.3); }
+  .live .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: #4ade80;
+    box-shadow: 0 0 8px #4ade80;
+    animation: dotPulse 1.4s ease-in-out infinite;
+  }
+  @keyframes dotPulse {
+    0%,100% { transform: scale(1);   opacity: 1; }
+    50%     { transform: scale(1.5); opacity: 0.5; }
+  }
+  .live.stale {
+    background: rgba(148,163,184,0.15);
+    color: #94a3b8;
+    border-color: rgba(148,163,184,0.3);
+  }
+  .live.stale .dot {
+    background: #64748b;
+    box-shadow: none;
+    animation: none;
+  }
 
-  .dev .id {
+  .id {
     font-family: ui-monospace, "SF Mono", Menlo, monospace;
-    font-size: 11.5px; color: #94a3b8;
+    font-size: 11px; color: #94a3b8;
     word-break: break-all;
     margin-bottom: 10px;
+    opacity: 0.85;
   }
 
-  /* Полоски сигнала */
   .bars {
     display: flex; gap: 4px; align-items: flex-end;
     height: 22px; margin-bottom: 8px;
   }
   .bars span {
-    flex: 1;
-    height: 25%;
+    flex: 1; height: 25%;
     border-radius: 3px;
     background: rgba(255,255,255,0.08);
-    transition: background 0.3s, height 0.4s cubic-bezier(0.16,1,0.3,1);
-    animation: barGrow 0.6s cubic-bezier(0.16,1,0.3,1) both;
+    transition: background 0.4s, height 0.5s cubic-bezier(0.16,1,0.3,1), box-shadow 0.4s;
   }
-  .bars span:nth-child(1) { animation-delay: 0.05s; }
-  .bars span:nth-child(2) { animation-delay: 0.1s; }
-  .bars span:nth-child(3) { animation-delay: 0.15s; }
-  .bars span:nth-child(4) { animation-delay: 0.2s; }
-  .bars span:nth-child(5) { animation-delay: 0.25s; }
-  @keyframes barGrow { from { transform: scaleY(0.2); opacity: 0; } to { transform: none; opacity: 1; } }
-
   .bars.lvl-1 span:nth-child(-n+1),
   .bars.lvl-2 span:nth-child(-n+2),
   .bars.lvl-3 span:nth-child(-n+3),
   .bars.lvl-4 span:nth-child(-n+4),
   .bars.lvl-5 span:nth-child(-n+5) {
     background: linear-gradient(180deg, #a78bfa, #8b5cf6);
-    box-shadow: 0 0 10px rgba(139,92,246,0.6);
+    box-shadow: 0 0 10px rgba(139,92,246,0.55);
   }
   .bars.lvl-1 span:nth-child(1) { height: 30%; }
   .bars.lvl-2 span:nth-child(2) { height: 50%; }
@@ -274,72 +348,362 @@
   .bars.lvl-4 span:nth-child(4) { height: 90%; }
   .bars.lvl-5 span:nth-child(5) { height: 100%; }
 
-  .dev .rssi {
+  .meta {
+    display: flex; justify-content: space-between; align-items: center;
     font-size: 12px; color: #cbd5e1;
-    display: flex; justify-content: space-between;
   }
-  .dev .rssi b { color: #a5b4fc; }
+  .meta .label { color: #94a3b8; font-size: 11.5px; }
+  .meta b { color: #a5b4fc; font-weight: 700; }
+  .meta .seen { color: #64748b; font-size: 11px; font-variant-numeric: tabular-nums; }
 
-  /* === Плашка с подсказкой === */
-  .tip {
-    margin-top: 22px;
-    padding: 14px 16px;
-    border-radius: 14px;
-    background: rgba(30, 41, 59, 0.5);
-    border: 1px solid rgba(148,163,184,0.15);
-    font-size: 12.5px;
-    color: #94a3b8;
-    line-height: 1.55;
-    animation: fadeIn 0.6s 0.2s both;
+  /* === Пустое состояние === */
+  .empty {
+    text-align: center;
+    padding: 48px 20px;
+    color: #64748b;
+    animation: fadeIn 0.6s both;
   }
-  .tip b { color: #cbd5e1; }
+  .empty .icon {
+    font-size: 48px;
+    opacity: 0.35;
+    margin-bottom: 12px;
+    display: block;
+    animation: float 4s ease-in-out infinite;
+  }
+  @keyframes float {
+    0%,100% { transform: translateY(0); }
+    50%     { transform: translateY(-8px); }
+  }
+  .empty p { font-size: 13px; line-height: 1.55; }
+
+  /* === Тост === */
+  .toast {
+    position: fixed;
+    left: 50%; bottom: calc(24px + env(safe-area-inset-bottom));
+    transform: translate(-50%, 120px);
+    padding: 12px 20px;
+    border-radius: 14px;
+    background: rgba(20,20,32,0.9);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(139,92,246,0.4);
+    box-shadow: 0 20px 50px -12px rgba(0,0,0,0.8);
+    font-size: 13.5px; font-weight: 600;
+    color: #fff;
+    z-index: 100;
+    opacity: 0;
+    transition: transform 0.45s cubic-bezier(0.16,1,0.3,1), opacity 0.3s;
+    pointer-events: none;
+    max-width: calc(100vw - 40px);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .toast.show {
+    transform: translate(-50%, 0);
+    opacity: 1;
+  }
+  .toast .em { color: #a5b4fc; }
 </style>
 </head>
 <body>
   <div class="bg"></div>
   <div class="noise"></div>
+  <div class="grid-lines"></div>
 
   <div class="wrap">
     <header>
       <h1>📡 Устройства рядом</h1>
-      <p class="subtitle">Bluetooth Low Energy · сканирование через Safari</p>
+      <p class="subtitle">Bluetooth Low Energy · живые данные</p>
     </header>
 
-    <button class="btn" id="scan">🔍 Начать сканирование</button>
+    <div class="stats">
+      <div class="stat"><div class="num" id="s-total">0</div><span class="lbl">Всего</span></div>
+      <div class="stat"><div class="num" id="s-active">0</div><span class="lbl">В эфире</span></div>
+      <div class="stat"><div class="num" id="s-best">—</div><span class="lbl">Ближе всех</span></div>
+    </div>
+
+    <div class="actions">
+      <button class="btn" id="scan">🔍 Добавить устройство</button>
+      <button class="btn-icon danger" id="clear" title="Очистить" disabled>🗑</button>
+    </div>
 
     <div class="radar" id="radar">
-      <div class="ring"></div>
-      <div class="ring"></div>
-      <div class="ring"></div>
-      <div class="ring"></div>
-      <div class="sweep"></div>
-      <div class="core"></div>
+      <div class="ring"></div><div class="ring"></div>
+      <div class="ring"></div><div class="ring"></div>
+      <div class="sweep"></div><div class="core"></div>
     </div>
 
     <div class="status" id="status"></div>
-    <div class="list" id="list"></div>
 
-    <div class="tip" id="tip">
-      <b>Совет:</b> нажми кнопку — появится системное окно iPhone со списком
-      BLE-устройств вокруг. Выбери любое, чтобы увидеть силу сигнала.
-      Чем ближе к 0 дБм — тем ближе устройство.
+    <div class="list" id="list">
+      <div class="empty" id="empty">
+        <span class="icon">📶</span>
+        <p>Нажми <b style="color:#a5b4fc">«Добавить устройство»</b>,<br>выбери BLE-девайс — и он появится здесь.<br>Можно добавить сколько угодно.</p>
+      </div>
     </div>
   </div>
 
+  <div class="toast" id="toast"></div>
+
 <script>
+/* ============================================================
+   Состояние
+   ============================================================ */
+const devices = new Map(); // id -> { name, rssi, lastSeen, el, liveEl, dotEl, ... }
+const ACTIVE_MS = 6000;    // если дольше не слышно — считаем "не в эфире"
+
 const listEl   = document.getElementById('list');
+const emptyEl  = document.getElementById('empty');
 const statusEl = document.getElementById('status');
 const radarEl  = document.getElementById('radar');
-const tipEl    = document.getElementById('tip');
 const btn      = document.getElementById('scan');
+const clearBtn = document.getElementById('clear');
+const toastEl  = document.getElementById('toast');
+const sTotal   = document.getElementById('s-total');
+const sActive  = document.getElementById('s-active');
+const sBest    = document.getElementById('s-best');
 
-let watchDevice = null;
+/* ============================================================
+   Утилиты
+   ============================================================ */
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[c]));
+}
 
+function rssiInfo(rssi) {
+  if (rssi === null || rssi === undefined)
+    return { label: 'нет данных', cls: 'na', bars: '',     quality: '—' };
+  if (rssi > -55) return { label: 'очень близко', cls: 'b5', bars: 'lvl-5', quality: 'отлично' };
+  if (rssi > -70) return { label: 'близко',       cls: 'b4', bars: 'lvl-4', quality: 'хорошо' };
+  if (rssi > -80) return { label: 'средне',       cls: 'b3', bars: 'lvl-3', quality: 'средне' };
+  if (rssi > -90) return { label: 'далеко',       cls: 'b2', bars: 'lvl-2', quality: 'слабо' };
+  return              { label: 'очень далеко', cls: 'b1', bars: 'lvl-1', quality: 'плохо' };
+}
+
+function showToast(text, emoji = '✨') {
+  toastEl.innerHTML = `<span class="em">${emoji}</span> ${escapeHtml(text)}`;
+  toastEl.classList.add('show');
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(() => toastEl.classList.remove('show'), 2200);
+}
+
+function bump(el) {
+  el.classList.remove('bump');
+  void el.offsetWidth;
+  el.classList.add('bump');
+  setTimeout(() => el.classList.remove('bump'), 320);
+}
+
+function timeAgo(ts) {
+  const s = Math.floor((Date.now() - ts) / 1000);
+  if (s < 2) return 'только что';
+  if (s < 60) return `${s} сек назад`;
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m} мин назад`;
+  return `${Math.floor(m/60)} ч назад`;
+}
+
+/* ============================================================
+   Создание карточки устройства
+   ============================================================ */
+function createCard(id, name) {
+  const el = document.createElement('div');
+  el.className = 'dev fresh';
+  el.dataset.id = id;
+  el.innerHTML = `
+    <div class="row1">
+      <div class="name">${escapeHtml(name || 'Устройство без имени')}</div>
+      <div class="live">
+        <span class="dot"></span><span class="live-text">в эфире</span>
+      </div>
+    </div>
+    <div class="id">${escapeHtml(id)}</div>
+    <div class="bars">
+      <span></span><span></span><span></span><span></span><span></span>
+    </div>
+    <div class="meta">
+      <span class="label">Уровень сигнала</span>
+      <span><b class="rssi">—</b></span>
+    </div>
+    <div class="meta" style="margin-top:4px">
+      <span class="label">Последний раз</span>
+      <span class="seen">только что</span>
+    </div>
+  `;
+  return el;
+}
+
+/* ============================================================
+   Обновление карточки
+   ============================================================ */
+function updateCard(entry) {
+  const { el, rssi, lastSeen } = entry;
+  const info = rssiInfo(rssi);
+
+  const rssiEl = el.querySelector('.rssi');
+  const barsEl = el.querySelector('.bars');
+  const liveEl = el.querySelector('.live');
+  const liveText = el.querySelector('.live-text');
+  const seenEl = el.querySelector('.seen');
+
+  rssiEl.textContent = rssi === null ? '—' : rssi + ' дБм';
+  barsEl.className = 'bars ' + info.bars;
+
+  const isActive = Date.now() - lastSeen < ACTIVE_MS;
+  if (isActive) {
+    liveEl.classList.remove('stale');
+    liveText.textContent = 'в эфире';
+    el.classList.remove('stale');
+  } else {
+    liveEl.classList.add('stale');
+    liveText.textContent = 'не слышно';
+    el.classList.add('stale');
+  }
+  seenEl.textContent = timeAgo(lastSeen);
+
+  // Подпись качества
+  const qualityEl = el.querySelector('.rssi').parentElement;
+  qualityEl.title = info.quality;
+}
+
+/* ============================================================
+   Плавная сортировка (FLIP-анимация)
+   ============================================================ */
+function sortList() {
+  const entries = [...devices.values()];
+  entries.sort((a, b) => {
+    const ra = a.rssi === null ? -999 : a.rssi;
+    const rb = b.rssi === null ? -999 : b.rssi;
+    return rb - ra; // сильнее сигнал — выше
+  });
+
+  // FLIP: запоминаем позиции
+  const positions = new Map();
+  entries.forEach(e => {
+    if (e.el.isConnected) positions.set(e.el, e.el.getBoundingClientRect().top);
+  });
+
+  // Переставляем в DOM
+  entries.forEach(e => listEl.appendChild(e.el));
+
+  // FLIP: анимируем переход
+  entries.forEach(e => {
+    if (!e.el.isConnected) return;
+    const oldTop = positions.get(e.el);
+    if (oldTop === undefined) return;
+    const newTop = e.el.getBoundingClientRect().top;
+    const dy = oldTop - newTop;
+    if (Math.abs(dy) < 1) return;
+    e.el.animate(
+      [{ transform: `translateY(${dy}px)` }, { transform: 'translateY(0)' }],
+      { duration: 500, easing: 'cubic-bezier(0.16,1,0.3,1)' }
+    );
+  });
+}
+
+/* ============================================================
+   Обновление статистики
+   ============================================================ */
+function refreshStats() {
+  const total = devices.size;
+  const active = [...devices.values()].filter(d => Date.now() - d.lastSeen < ACTIVE_MS).length;
+
+  let best = null;
+  for (const d of devices.values()) {
+    if (d.rssi === null) continue;
+    if (best === null || d.rssi > best) best = d.rssi;
+  }
+
+  if (sTotal.textContent !== String(total)) { sTotal.textContent = total; bump(sTotal); }
+  if (sActive.textContent !== String(active)) { sActive.textContent = active; bump(sActive); }
+  const bestStr = best === null ? '—' : best;
+  if (sBest.textContent !== String(bestStr)) { sBest.textContent = bestStr; bump(sBest); }
+
+  clearBtn.disabled = total === 0;
+  emptyEl.style.display = total === 0 ? '' : 'none';
+}
+
+/* ============================================================
+   Добавление устройства в список
+   ============================================================ */
+function addDevice(device) {
+  const id = device.id;
+  const name = device.name || null;
+
+  // Уже есть — вспышка и подсветка
+  if (devices.has(id)) {
+    const e = devices.get(id);
+    e.lastSeen = Date.now();
+    if (name) e.name = name;
+    updateCard(e);
+    e.el.classList.remove('flash');
+    void e.el.offsetWidth;
+    e.el.classList.add('flash');
+    e.el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    showToast('Уже в списке · ' + (e.name || 'без имени'), '🔁');
+    return e;
+  }
+
+  // Создаём новую карточку
+  const el = createCard(id, name);
+  const entry = {
+    id, name, rssi: null, lastSeen: Date.now(),
+    el, watching: false
+  };
+  devices.set(id, entry);
+
+  // Вставляем в начало (потом отсортируем)
+  listEl.appendChild(el);
+  updateCard(entry);
+  refreshStats();
+  showToast('Найдено · ' + (name || 'без имени'), '🎯');
+
+  // Плавная прокрутка к новой карточке
+  setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'center' }), 80);
+
+  // Запускаем live-режим
+  startWatching(device, entry);
+
+  // Сортировка через мгновение
+  setTimeout(sortList, 400);
+
+  return entry;
+}
+
+/* ============================================================
+   Live-обновления RSSI
+   ============================================================ */
+async function startWatching(device, entry) {
+  if (entry.watching) return;
+  if (!device.watchAdvertisements) {
+    // Нет live API — просто показываем то, что есть
+    entry.lastSeen = Date.now();
+    updateCard(entry);
+    return;
+  }
+  try {
+    entry.watching = true;
+    device.addEventListener('advertisementreceived', (e) => {
+      entry.rssi = e.rssi;
+      entry.lastSeen = Date.now();
+      if (e.device && e.device.name) entry.name = e.device.name;
+      updateCard(entry);
+      refreshStats();
+    });
+    await device.watchAdvertisements();
+  } catch (err) {
+    // Не критично, оставляем без live
+    entry.watching = false;
+  }
+}
+
+/* ============================================================
+   Кнопка сканирования
+   ============================================================ */
 btn.addEventListener('click', async () => {
-  listEl.innerHTML = '';
   statusEl.className = 'status';
   statusEl.textContent = '';
-  tipEl.style.display = 'none';
 
   if (!navigator.bluetooth) {
     statusEl.className = 'status err';
@@ -348,9 +712,9 @@ btn.addEventListener('click', async () => {
   }
 
   btn.disabled = true;
-  btn.textContent = '⏳ Идёт поиск...';
+  btn.textContent = '⏳ Открываю список...';
   radarEl.classList.add('on');
-  statusEl.textContent = 'Сканирую эфир...';
+  statusEl.textContent = 'Выбери устройство в системном окне';
 
   try {
     const device = await navigator.bluetooth.requestDevice({
@@ -360,63 +724,62 @@ btn.addEventListener('click', async () => {
 
     radarEl.classList.remove('on');
     statusEl.className = 'status ok';
-    statusEl.textContent = '✓ Устройство найдено';
+    statusEl.textContent = '✓ Добавлено в список';
+    addDevice(device);
 
-    watchDevice = device;
-    renderDevice(device.name, device.id, null);
-
-    if (device.watchAdvertisements) {
-      device.addEventListener('advertisementreceived', (e) => {
-        renderDevice(device.name, device.id, e.rssi);
-      });
-      await device.watchAdvertisements();
-    }
+    // Через секунду вернуть подсказку
+    setTimeout(() => {
+      if (statusEl.textContent.startsWith('✓')) {
+        statusEl.textContent = 'Нажми ещё раз, чтобы добавить следующее';
+        statusEl.className = 'status';
+      }
+    }, 1800);
   } catch (e) {
     radarEl.classList.remove('on');
-    statusEl.className = 'status err';
-    statusEl.textContent = 'Отменено или ошибка: ' + e.message;
+    if (String(e.message).toLowerCase().includes('cancel')) {
+      statusEl.textContent = 'Отменено';
+    } else {
+      statusEl.className = 'status err';
+      statusEl.textContent = 'Ошибка: ' + e.message;
+    }
   } finally {
     btn.disabled = false;
-    btn.textContent = '🔍 Начать сканирование';
+    btn.textContent = '🔍 Добавить устройство';
   }
 });
 
-function renderDevice(name, id, rssi) {
-  const info = rssiInfo(rssi);
-  const html = `
-    <div class="dev">
-      <div class="row1">
-        <div class="name">${escapeHtml(name || 'Устройство без имени')}</div>
-        <div class="badge ${info.cls}">${info.label}</div>
-      </div>
-      <div class="id">${escapeHtml(id)}</div>
-      <div class="bars ${info.bars}">
-        <span></span><span></span><span></span><span></span><span></span>
-      </div>
-      <div class="rssi">
-        <span>Уровень сигнала</span>
-        <span><b>${rssi === null ? '—' : rssi + ' дБм'}</b></span>
-      </div>
-    </div>
-  `;
-  listEl.innerHTML = html;
-}
+/* ============================================================
+   Очистка списка
+   ============================================================ */
+clearBtn.addEventListener('click', () => {
+  if (devices.size === 0) return;
+  if (!confirm('Очистить список устройств?')) return;
 
-function rssiInfo(rssi) {
-  if (rssi === null || rssi === undefined)
-    return { label: 'нет данных', cls: 'na', bars: '' };
-  if (rssi > -55) return { label: 'очень близко', cls: '',      bars: 'lvl-5' };
-  if (rssi > -70) return { label: 'близко',       cls: '',      bars: 'lvl-4' };
-  if (rssi > -80) return { label: 'средне',       cls: 'mid',   bars: 'lvl-3' };
-  if (rssi > -90) return { label: 'далеко',       cls: 'far',   bars: 'lvl-2' };
-  return              { label: 'очень далеко', cls: 'far',   bars: 'lvl-1' };
-}
+  for (const e of devices.values()) {
+    e.el.style.transition = 'opacity .3s, transform .3s';
+    e.el.style.opacity = '0';
+    e.el.style.transform = 'scale(0.9)';
+    setTimeout(() => e.el.remove(), 300);
+  }
+  devices.clear();
+  refreshStats();
+  showToast('Список очищен', '🧹');
+  statusEl.textContent = '';
+  statusEl.className = 'status';
+});
 
-function escapeHtml(s) {
-  return String(s).replace(/[&<>"']/g, c => ({
-    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
-  }[c]));
-}
+/* ============================================================
+   Таймер обновления "последний раз видели"
+   ============================================================ */
+setInterval(() => {
+  for (const e of devices.values()) updateCard(e);
+  refreshStats();
+}, 1000);
+
+/* ============================================================
+   Приветствие
+   ============================================================ */
+setTimeout(() => showToast('Готово к сканированию', '👋'), 700);
 </script>
 </body>
 </html>
