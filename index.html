@@ -895,7 +895,7 @@ function detectLedProfile(name) {
   const n = (name || '').toLowerCase();
   if (/lednet|zengge|wf\d|happy|elk|bledom/.test(n)) return 'zengge';
   if (/triones|magic\s?light|happy\s?light/.test(n))   return 'triones';
-  return null;
+  return 'zengge';
 }
 
 /* ============================================================
@@ -1443,6 +1443,8 @@ async function toggleConnection() {
 
 async function reloadData() {
   if (!activeServer) return;
+  // Важная задержка для инициализации стека GATT
+  await new Promise(r => setTimeout(r, 600));
   await readBattery();
   await readDeviceInfo();
   await listServices();
@@ -1526,7 +1528,7 @@ async function readDeviceInfo() {
 }
 
 /* ============================================================
-   Сервисы — с fallback через getPrimaryService() (Исправлено)
+   Сервисы — надежный fallback через KNOWN_SERVICES
    ============================================================ */
 async function listServices() {
   if (!activeServer) return;
@@ -1539,27 +1541,25 @@ async function listServices() {
     try {
       services = await activeServer.getPrimaryServices();
     } catch (e) {
-      log('getPrimaryServices не сработал: ' + e.message, '');
+      log('getPrimaryServices заблокирован: ' + e.message, 'info');
     }
 
-    // Если список пуст — принудительно опрашиваем каждый известный UUID по отдельности
+    // Если стандартный метод вернул пустоту — обходим по каждому UUID из KNOWN_SERVICES
     if (!services || services.length === 0) {
-      log('Список пуст, пробую напрямую по UUID...', 'info');
+      log('Запуск принудительного поиска сервисов по UUID...', 'info');
       for (const uuid of KNOWN_SERVICES) {
         try {
           const svc = await activeServer.getPrimaryService(uuid);
           if (svc && !services.some(s => s.uuid === svc.uuid)) {
             services.push(svc);
           }
-        } catch (e) {
-          // Сервис недоступен — пропускаем
-        }
+        } catch (e) {}
       }
       log('Найдено через fallback: ' + services.length, 'info');
     }
 
     if (services.length === 0) {
-      box.innerHTML = '<div class="empty-sec" style="color:#f87171">Устройство не отдаёт сервисы. Возможно, требуется фирменное приложение или авторизация.</div>';
+      box.innerHTML = '<div class="empty-sec" style="color:#f87171">Устройство не отдаёт сервисы. Убедитесь, что оно не занято другим приложением (родным на телефоне).</div>';
       log('Сервисы не найдены ни одним способом', 'err');
       return;
     }
@@ -1815,7 +1815,7 @@ async function writeToChar(ch, bytes) {
 async function sendPreset(cmd) {
   if (!activeServer) { showToast('Сначала подключись', '⚠️'); return; }
 
-  const profileKey = activeEntry?.ledProfile || 'triones';
+  const profileKey = activeEntry?.ledProfile || 'zengge';
   const profile = LED_PROFILES[profileKey];
   if (!profile) { showToast('Профиль неизвестен', '⚠️'); return; }
 
@@ -1845,7 +1845,7 @@ async function sendPreset(cmd) {
 async function sendColor(hex) {
   if (!activeServer) { showToast('Сначала подключись', '⚠️'); return; }
 
-  const profileKey = activeEntry?.ledProfile || 'triones';
+  const profileKey = activeEntry?.ledProfile || 'zengge';
   const profile = LED_PROFILES[profileKey];
   if (!profile) return;
 
