@@ -2,36 +2,355 @@
 <html lang="ru">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>BLE Scanner</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0a0a12">
+<title>Устройства рядом</title>
 <style>
-  body { font-family: -apple-system, sans-serif; background:#0f1115; color:#e5e7eb; margin:0; padding:16px; }
-  h1 { font-size:18px; }
-  button { background:#2563eb; color:#fff; border:0; padding:14px 20px; border-radius:10px; font-size:16px; width:100%; margin-bottom:16px; }
-  button:disabled { background:#374151; }
-  .dev { background:#1f2937; border:1px solid #374151; border-radius:10px; padding:12px; margin-bottom:8px; }
-  .dev b { color:#22c55e; }
-  .err { color:#ef4444; }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    min-height: 100%;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+    color: #f0f0f5;
+    background: #06060c;
+    overflow-x: hidden;
+  }
+
+  /* === Анимированный градиентный фон === */
+  .bg {
+    position: fixed;
+    inset: -50%;
+    z-index: -2;
+    background:
+      radial-gradient(circle at 20% 20%, #1e3a8a 0%, transparent 45%),
+      radial-gradient(circle at 80% 30%, #7c3aed 0%, transparent 45%),
+      radial-gradient(circle at 50% 80%, #0891b2 0%, transparent 50%),
+      radial-gradient(circle at 90% 90%, #db2777 0%, transparent 45%);
+    filter: blur(70px);
+    opacity: 0.75;
+    animation: bgShift 24s ease-in-out infinite alternate;
+  }
+  @keyframes bgShift {
+    0%   { transform: translate(0,0) scale(1) rotate(0deg); }
+    50%  { transform: translate(4%, -3%) scale(1.15) rotate(6deg); }
+    100% { transform: translate(-3%, 4%) scale(1.05) rotate(-4deg); }
+  }
+
+  /* Шум поверх фона */
+  .noise {
+    position: fixed; inset: 0; z-index: -1; pointer-events: none;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/></filter><rect width='120' height='120' filter='url(%23n)' opacity='0.35'/></svg>");
+    opacity: 0.06;
+    mix-blend-mode: overlay;
+  }
+
+  .wrap {
+    max-width: 520px;
+    margin: 0 auto;
+    padding: 28px 20px calc(40px + env(safe-area-inset-bottom));
+    position: relative;
+  }
+
+  /* === Заголовок === */
+  header { text-align: center; margin-bottom: 28px; animation: fadeDown 0.7s cubic-bezier(0.16,1,0.3,1) both; }
+  @keyframes fadeDown { from { opacity:0; transform: translateY(-20px); } to { opacity:1; transform:none; } }
+
+  h1 {
+    font-size: 26px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    background: linear-gradient(120deg, #fff 0%, #a5b4fc 40%, #67e8f9 70%, #fff 100%);
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: shine 5s linear infinite;
+  }
+  @keyframes shine { to { background-position: 200% center; } }
+
+  .subtitle {
+    margin-top: 8px; font-size: 13px; color: #9ca3af; line-height: 1.5;
+  }
+
+  /* === Кнопка === */
+  .btn {
+    position: relative;
+    width: 100%;
+    padding: 18px 24px;
+    border: 0;
+    border-radius: 18px;
+    font-size: 16px;
+    font-weight: 700;
+    color: #fff;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6 50%, #ec4899);
+    background-size: 200% 200%;
+    cursor: pointer;
+    overflow: hidden;
+    box-shadow:
+      0 10px 30px -8px rgba(139, 92, 246, 0.6),
+      inset 0 1px 0 rgba(255,255,255,0.25);
+    transition: transform 0.25s cubic-bezier(0.16,1,0.3,1), box-shadow 0.3s;
+    animation: btnGlow 4s ease-in-out infinite;
+  }
+  @keyframes btnGlow {
+    0%,100% { background-position: 0% 50%; }
+    50%     { background-position: 100% 50%; }
+  }
+  .btn:active { transform: scale(0.97); }
+  .btn:disabled {
+    background: linear-gradient(135deg, #374151, #1f2937);
+    box-shadow: none;
+    animation: none;
+    cursor: default;
+    opacity: 0.85;
+  }
+
+  /* Блик по кнопке */
+  .btn::after {
+    content: "";
+    position: absolute; top: 0; left: -60%;
+    width: 40%; height: 100%;
+    background: linear-gradient(120deg, transparent, rgba(255,255,255,0.4), transparent);
+    transform: skewX(-20deg);
+    animation: sweep 3.2s ease-in-out infinite;
+  }
+  .btn:disabled::after { display: none; }
+  @keyframes sweep {
+    0%   { left: -60%; }
+    60%  { left: 130%; }
+    100% { left: 130%; }
+  }
+
+  /* === Радар === */
+  .radar {
+    display: none;
+    margin: 26px auto;
+    width: 160px; height: 160px;
+    position: relative;
+  }
+  .radar.on { display: block; animation: fadeIn 0.4s ease both; }
+  @keyframes fadeIn { from { opacity:0; transform: scale(0.9); } to { opacity:1; transform:none; } }
+
+  .radar .ring {
+    position: absolute; inset: 0;
+    border-radius: 50%;
+    border: 1.5px solid rgba(139, 92, 246, 0.55);
+    animation: pulse 2.4s cubic-bezier(0.4,0,0.2,1) infinite;
+  }
+  .radar .ring:nth-child(2) { animation-delay: 0.6s; }
+  .radar .ring:nth-child(3) { animation-delay: 1.2s; }
+  .radar .ring:nth-child(4) { animation-delay: 1.8s; }
+  @keyframes pulse {
+    0%   { transform: scale(0.3); opacity: 1; }
+    100% { transform: scale(1);   opacity: 0; }
+  }
+  .radar .core {
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 14px; height: 14px;
+    margin: -7px 0 0 -7px;
+    border-radius: 50%;
+    background: radial-gradient(circle, #a5b4fc, #6366f1);
+    box-shadow: 0 0 24px 6px rgba(139, 92, 246, 0.7);
+    animation: coreBlink 1.4s ease-in-out infinite;
+  }
+  @keyframes coreBlink {
+    0%,100% { transform: scale(1);   opacity: 1; }
+    50%     { transform: scale(1.4); opacity: 0.6; }
+  }
+  /* Вращающийся луч */
+  .radar .sweep {
+    position: absolute; inset: 0;
+    border-radius: 50%;
+    background: conic-gradient(from 0deg, transparent 0deg, rgba(139,92,246,0.35) 40deg, transparent 80deg);
+    animation: rotate 2s linear infinite;
+    mask: radial-gradient(circle, transparent 0%, #000 40%);
+    -webkit-mask: radial-gradient(circle, transparent 0%, #000 40%);
+  }
+  @keyframes rotate { to { transform: rotate(360deg); } }
+
+  /* === Статус === */
+  .status {
+    text-align: center; font-size: 13.5px; color: #9ca3af;
+    min-height: 20px;
+    margin-bottom: 8px;
+    transition: opacity 0.3s;
+  }
+  .status.ok { color: #4ade80; }
+  .status.err { color: #f87171; }
+
+  /* === Карточки устройств === */
+  .list { display: flex; flex-direction: column; gap: 12px; }
+
+  .dev {
+    position: relative;
+    padding: 16px 18px;
+    border-radius: 18px;
+    background: rgba(28, 28, 40, 0.55);
+    backdrop-filter: blur(18px) saturate(160%);
+    -webkit-backdrop-filter: blur(18px) saturate(160%);
+    border: 1px solid rgba(255,255,255,0.08);
+    box-shadow: 0 8px 24px -10px rgba(0,0,0,0.6);
+    overflow: hidden;
+    animation: cardIn 0.55s cubic-bezier(0.16,1,0.3,1) both;
+    transition: transform 0.25s, border-color 0.25s, background 0.3s;
+  }
+  .dev::before {
+    content: "";
+    position: absolute; left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: linear-gradient(180deg, #8b5cf6, #ec4899, #06b6d4);
+    opacity: 0.9;
+  }
+  .dev:hover, .dev:active {
+    transform: translateY(-2px);
+    border-color: rgba(139,92,246,0.5);
+    background: rgba(36, 36, 54, 0.7);
+  }
+  @keyframes cardIn {
+    from { opacity: 0; transform: translateY(16px) scale(0.97); }
+    to   { opacity: 1; transform: none; }
+  }
+
+  .dev .row1 {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 10px; margin-bottom: 8px;
+  }
+  .dev .name {
+    font-weight: 700; font-size: 15.5px;
+    color: #fff;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .dev .badge {
+    flex-shrink: 0;
+    font-size: 11px; font-weight: 700;
+    padding: 4px 9px; border-radius: 999px;
+    background: rgba(34,197,94,0.15);
+    color: #4ade80;
+    border: 1px solid rgba(34,197,94,0.3);
+  }
+  .dev .badge.mid { background: rgba(234,179,8,0.15); color: #facc15; border-color: rgba(234,179,8,0.3); }
+  .dev .badge.far { background: rgba(239,68,68,0.15); color: #f87171; border-color: rgba(239,68,68,0.3); }
+  .dev .badge.na  { background: rgba(148,163,184,0.15); color: #94a3b8; border-color: rgba(148,163,184,0.3); }
+
+  .dev .id {
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 11.5px; color: #94a3b8;
+    word-break: break-all;
+    margin-bottom: 10px;
+  }
+
+  /* Полоски сигнала */
+  .bars {
+    display: flex; gap: 4px; align-items: flex-end;
+    height: 22px; margin-bottom: 8px;
+  }
+  .bars span {
+    flex: 1;
+    height: 25%;
+    border-radius: 3px;
+    background: rgba(255,255,255,0.08);
+    transition: background 0.3s, height 0.4s cubic-bezier(0.16,1,0.3,1);
+    animation: barGrow 0.6s cubic-bezier(0.16,1,0.3,1) both;
+  }
+  .bars span:nth-child(1) { animation-delay: 0.05s; }
+  .bars span:nth-child(2) { animation-delay: 0.1s; }
+  .bars span:nth-child(3) { animation-delay: 0.15s; }
+  .bars span:nth-child(4) { animation-delay: 0.2s; }
+  .bars span:nth-child(5) { animation-delay: 0.25s; }
+  @keyframes barGrow { from { transform: scaleY(0.2); opacity: 0; } to { transform: none; opacity: 1; } }
+
+  .bars.lvl-1 span:nth-child(-n+1),
+  .bars.lvl-2 span:nth-child(-n+2),
+  .bars.lvl-3 span:nth-child(-n+3),
+  .bars.lvl-4 span:nth-child(-n+4),
+  .bars.lvl-5 span:nth-child(-n+5) {
+    background: linear-gradient(180deg, #a78bfa, #8b5cf6);
+    box-shadow: 0 0 10px rgba(139,92,246,0.6);
+  }
+  .bars.lvl-1 span:nth-child(1) { height: 30%; }
+  .bars.lvl-2 span:nth-child(2) { height: 50%; }
+  .bars.lvl-3 span:nth-child(3) { height: 70%; }
+  .bars.lvl-4 span:nth-child(4) { height: 90%; }
+  .bars.lvl-5 span:nth-child(5) { height: 100%; }
+
+  .dev .rssi {
+    font-size: 12px; color: #cbd5e1;
+    display: flex; justify-content: space-between;
+  }
+  .dev .rssi b { color: #a5b4fc; }
+
+  /* === Плашка с подсказкой === */
+  .tip {
+    margin-top: 22px;
+    padding: 14px 16px;
+    border-radius: 14px;
+    background: rgba(30, 41, 59, 0.5);
+    border: 1px solid rgba(148,163,184,0.15);
+    font-size: 12.5px;
+    color: #94a3b8;
+    line-height: 1.55;
+    animation: fadeIn 0.6s 0.2s both;
+  }
+  .tip b { color: #cbd5e1; }
 </style>
 </head>
 <body>
-  <h1>📡 Поиск BLE-устройств</h1>
-  <button id="scan">Сканировать Bluetooth</button>
-  <div id="log"></div>
+  <div class="bg"></div>
+  <div class="noise"></div>
+
+  <div class="wrap">
+    <header>
+      <h1>📡 Устройства рядом</h1>
+      <p class="subtitle">Bluetooth Low Energy · сканирование через Safari</p>
+    </header>
+
+    <button class="btn" id="scan">🔍 Начать сканирование</button>
+
+    <div class="radar" id="radar">
+      <div class="ring"></div>
+      <div class="ring"></div>
+      <div class="ring"></div>
+      <div class="ring"></div>
+      <div class="sweep"></div>
+      <div class="core"></div>
+    </div>
+
+    <div class="status" id="status"></div>
+    <div class="list" id="list"></div>
+
+    <div class="tip" id="tip">
+      <b>Совет:</b> нажми кнопку — появится системное окно iPhone со списком
+      BLE-устройств вокруг. Выбери любое, чтобы увидеть силу сигнала.
+      Чем ближе к 0 дБм — тем ближе устройство.
+    </div>
+  </div>
 
 <script>
-const logEl = document.getElementById('log');
-const btn = document.getElementById('scan');
+const listEl   = document.getElementById('list');
+const statusEl = document.getElementById('status');
+const radarEl  = document.getElementById('radar');
+const tipEl    = document.getElementById('tip');
+const btn      = document.getElementById('scan');
+
+let watchDevice = null;
 
 btn.addEventListener('click', async () => {
-  logEl.innerHTML = '';
+  listEl.innerHTML = '';
+  statusEl.className = 'status';
+  statusEl.textContent = '';
+  tipEl.style.display = 'none';
+
   if (!navigator.bluetooth) {
-    logEl.innerHTML = '<p class="err">Web Bluetooth не поддерживается. Установи расширение beacio для Safari.</p>';
+    statusEl.className = 'status err';
+    statusEl.textContent = 'Bluetooth недоступен. Установи beacio для Safari.';
     return;
   }
 
   btn.disabled = true;
-  btn.textContent = 'Сканирую... (10 сек)';
+  btn.textContent = '⏳ Идёт поиск...';
+  radarEl.classList.add('on');
+  statusEl.textContent = 'Сканирую эфир...';
 
   try {
     const device = await navigator.bluetooth.requestDevice({
@@ -39,21 +358,65 @@ btn.addEventListener('click', async () => {
       optionalServices: []
     });
 
-    logEl.innerHTML = `<div class="dev"><b>${device.name || 'Без имени'}</b><br>ID: ${device.id}</div>`;
+    radarEl.classList.remove('on');
+    statusEl.className = 'status ok';
+    statusEl.textContent = '✓ Устройство найдено';
+
+    watchDevice = device;
+    renderDevice(device.name, device.id, null);
 
     if (device.watchAdvertisements) {
       device.addEventListener('advertisementreceived', (e) => {
-        logEl.innerHTML += `<div class="dev">RSSI: <b>${e.rssi}</b> dBm</div>`;
+        renderDevice(device.name, device.id, e.rssi);
       });
       await device.watchAdvertisements();
     }
   } catch (e) {
-    logEl.innerHTML = `<p class="err">Ошибка: ${e.message}</p>`;
+    radarEl.classList.remove('on');
+    statusEl.className = 'status err';
+    statusEl.textContent = 'Отменено или ошибка: ' + e.message;
   } finally {
     btn.disabled = false;
-    btn.textContent = 'Сканировать Bluetooth';
+    btn.textContent = '🔍 Начать сканирование';
   }
 });
+
+function renderDevice(name, id, rssi) {
+  const info = rssiInfo(rssi);
+  const html = `
+    <div class="dev">
+      <div class="row1">
+        <div class="name">${escapeHtml(name || 'Устройство без имени')}</div>
+        <div class="badge ${info.cls}">${info.label}</div>
+      </div>
+      <div class="id">${escapeHtml(id)}</div>
+      <div class="bars ${info.bars}">
+        <span></span><span></span><span></span><span></span><span></span>
+      </div>
+      <div class="rssi">
+        <span>Уровень сигнала</span>
+        <span><b>${rssi === null ? '—' : rssi + ' дБм'}</b></span>
+      </div>
+    </div>
+  `;
+  listEl.innerHTML = html;
+}
+
+function rssiInfo(rssi) {
+  if (rssi === null || rssi === undefined)
+    return { label: 'нет данных', cls: 'na', bars: '' };
+  if (rssi > -55) return { label: 'очень близко', cls: '',      bars: 'lvl-5' };
+  if (rssi > -70) return { label: 'близко',       cls: '',      bars: 'lvl-4' };
+  if (rssi > -80) return { label: 'средне',       cls: 'mid',   bars: 'lvl-3' };
+  if (rssi > -90) return { label: 'далеко',       cls: 'far',   bars: 'lvl-2' };
+  return              { label: 'очень далеко', cls: 'far',   bars: 'lvl-1' };
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[c]));
+}
 </script>
 </body>
 </html>
