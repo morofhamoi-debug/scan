@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>BLE Scanner</title>
+<style>
+  body { font-family: -apple-system, sans-serif; background:#0f1115; color:#e5e7eb; margin:0; padding:16px; }
+  h1 { font-size:18px; }
+  button { background:#2563eb; color:#fff; border:0; padding:14px 20px; border-radius:10px; font-size:16px; width:100%; margin-bottom:16px; }
+  button:disabled { background:#374151; }
+  .dev { background:#1f2937; border:1px solid #374151; border-radius:10px; padding:12px; margin-bottom:8px; }
+  .dev b { color:#22c55e; }
+  .err { color:#ef4444; }
+</style>
+</head>
+<body>
+  <h1>📡 Поиск BLE-устройств</h1>
+  <button id="scan">Сканировать Bluetooth</button>
+  <div id="log"></div>
+
+<script>
+const logEl = document.getElementById('log');
+const btn = document.getElementById('scan');
+
+btn.addEventListener('click', async () => {
+  logEl.innerHTML = '';
+  if (!navigator.bluetooth) {
+    logEl.innerHTML = '<p class="err">Web Bluetooth не поддерживается. Установи расширение beacio для Safari.</p>';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Сканирую... (10 сек)';
+
+  try {
+    const device = await navigator.bluetooth.requestDevice({
+      acceptAllDevices: true,
+      optionalServices: []
+    });
+
+    logEl.innerHTML = `<div class="dev"><b>${device.name || 'Без имени'}</b><br>ID: ${device.id}</div>`;
+
+    if (device.watchAdvertisements) {
+      device.addEventListener('advertisementreceived', (e) => {
+        logEl.innerHTML += `<div class="dev">RSSI: <b>${e.rssi}</b> dBm</div>`;
+      });
+      await device.watchAdvertisements();
+    }
+  } catch (e) {
+    logEl.innerHTML = `<p class="err">Ошибка: ${e.message}</p>`;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Сканировать Bluetooth';
+  }
+});
+</script>
+</body>
+</html>
