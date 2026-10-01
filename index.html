@@ -392,7 +392,6 @@
   .conn-status.on .led { background: #4ade80; box-shadow: 0 0 12px #4ade80; animation: dotPulse 1.6s ease-in-out infinite; }
   .conn-status.on { color: #e5e7eb; }
 
-  /* Инфо-карточки */
   .info-grid {
     display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
   }
@@ -414,7 +413,6 @@
   }
   .info-item.wide { grid-column: 1 / -1; }
 
-  /* Батарея */
   .batt {
     padding: 18px 20px; border-radius: 18px;
     background: rgba(28,28,40,.6);
@@ -443,7 +441,6 @@
     transition: width .8s cubic-bezier(.16,1,.3,1), background .3s;
   }
 
-  /* Пресеты управления */
   .presets { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
   .preset {
     padding: 18px 14px; border-radius: 16px;
@@ -493,7 +490,6 @@
   }
   .apply-color:active { transform: scale(.94); }
 
-  /* Список сервисов */
   .service {
     border-radius: 14px;
     background: rgba(28,28,40,.5);
@@ -573,7 +569,6 @@
     line-height: 1.5;
   }
 
-  /* Поле ввода hex для записи */
   .hex-row {
     display: flex; gap: 8px; margin-top: 10px;
   }
@@ -588,7 +583,6 @@
   }
   .hex-row input:focus { border-color: rgba(139,92,246,.5); }
 
-  /* Лог */
   .log {
     background: rgba(0,0,0,.4);
     border-radius: 14px;
@@ -622,6 +616,16 @@
     margin-right: 6px;
   }
   @keyframes spin { to { transform: rotate(360deg); } }
+
+  .profile-badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 4px 10px; border-radius: 8px;
+    font-size: 10.5px; font-weight: 700;
+    background: rgba(139,92,246,.18);
+    color: #c4b5fd;
+    border: 1px solid rgba(139,92,246,.3);
+    margin-left: 6px;
+  }
 </style>
 </head>
 <body>
@@ -662,7 +666,6 @@
     </div>
   </div>
 
-  <!-- ============ Панель управления ============ -->
   <div class="sheet-backdrop" id="backdrop"></div>
   <div class="sheet" id="sheet">
     <div class="grabber"></div>
@@ -728,10 +731,9 @@ const CAT = {
 };
 
 /* ============================================================
-   UUID-карта стандартных сервисов и характеристик
+   UUID-карта
    ============================================================ */
 const UUID_NAMES = {
-  // Сервисы
   '00001800-0000-1000-8000-00805f9b34fb': 'Generic Access',
   '00001801-0000-1000-8000-00805f9b34fb': 'Generic Attribute',
   '0000180a-0000-1000-8000-00805f9b34fb': 'Device Information',
@@ -752,13 +754,19 @@ const UUID_NAMES = {
   '00001802-0000-1000-8000-00805f9b34fb': 'Immediate Alert',
   '0000ffe0-0000-1000-8000-00805f9b34fb': 'HM-10 Serial',
   '0000ffe5-0000-1000-8000-00805f9b34fb': 'HM-11 Serial',
-  '0000fff0-0000-1000-8000-00805f9b34fb': 'Custom FFF0',
-  '0000ff01-0000-1000-8000-00805f9b34fb': 'Custom FF01',
+  '0000fff0-0000-1000-8000-00805f9b34fb': 'LED Controller FFF0',
+  '0000fff1-0000-1000-8000-00805f9b34fb': 'LED Notify FFF1',
+  '0000fff2-0000-1000-8000-00805f9b34fb': 'LED Write FFF2',
+  '0000fff3-0000-1000-8000-00805f9b34fb': 'LED Write FFF3',
+  '0000fff4-0000-1000-8000-00805f9b34fb': 'LED Notify FFF4',
+  '0000ff01-0000-1000-8000-00805f9b34fb': 'LED Control FF01',
+  '0000ff02-0000-1000-8000-00805f9b34fb': 'LED Notify FF02',
+  '0000ff03-0000-1000-8000-00805f9b34fb': 'LED Write FF03',
+  '0000ffe7-0000-1000-8000-00805f9b34fb': 'Tencent Service',
   '0000fee7-0000-1000-8000-00805f9b34fb': 'Tencent',
   '0000fe59-0000-1000-8000-00805f9b34fb': 'Nordic DFU',
   '00010203-0405-0607-0809-0a0b0c0d1912': 'Custom 1912',
 
-  // Характеристики
   '00002a00-0000-1000-8000-00805f9b34fb': 'Device Name',
   '00002a01-0000-1000-8000-00805f9b34fb': 'Appearance',
   '00002a04-0000-1000-8000-00805f9b34fb': 'Preferred Connection',
@@ -796,6 +804,108 @@ function shortUuid(uuid) {
 }
 
 /* ============================================================
+   Список UUID, которые нужны для доступа к сервисам
+   (должны совпадать с optionalServices при requestDevice)
+   ============================================================ */
+const KNOWN_SERVICES = [
+  'generic_access',
+  'generic_attribute',
+  'device_information',
+  'battery_service',
+  'heart_rate',
+  'health_thermometer',
+  'environmental_sensing',
+  'user_data',
+  'current_time',
+  'tx_power',
+  'link_loss',
+  'immediate_alert',
+  'blood_pressure',
+  'weight_scale',
+  'glucose',
+  'cycling_speed_and_cadence',
+  'running_speed_and_cadence',
+  'human_interface_device',
+  '0000ffe0-0000-1000-8000-00805f9b34fb',
+  '0000ffe5-0000-1000-8000-00805f9b34fb',
+  '0000fff0-0000-1000-8000-00805f9b34fb',
+  '0000fff1-0000-1000-8000-00805f9b34fb',
+  '0000fff2-0000-1000-8000-00805f9b34fb',
+  '0000fff3-0000-1000-8000-00805f9b34fb',
+  '0000fff4-0000-1000-8000-00805f9b34fb',
+  '0000ff01-0000-1000-8000-00805f9b34fb',
+  '0000ff02-0000-1000-8000-00805f9b34fb',
+  '0000ff03-0000-1000-8000-00805f9b34fb',
+  '0000fee7-0000-1000-8000-00805f9b34fb',
+  '0000fe59-0000-1000-8000-00805f9b34fb',
+  '00010203-0405-0607-0809-0a0b0c0d1912'
+];
+
+/* ============================================================
+   Профили LED-контроллеров
+   ============================================================ */
+const LED_PROFILES = {
+  // Zengge / LEDnetWF — формат: 31 00 00 00 [cmd] [params...] CS
+  // Проверка: CS = сумма всех байт до него mod 256
+  zengge: {
+    name: 'Zengge / LEDnet',
+    services: [
+      '0000fff0-0000-1000-8000-00805f9b34fb',
+      '0000ff01-0000-1000-8000-00805f9b34fb',
+      '0000ffe5-0000-1000-8000-00805f9b34fb'
+    ],
+    buildPower(on) {
+      // 31 00 00 00 03 [01|00] 00 00 00 00 CS
+      const b = [0x31, 0x00, 0x00, 0x00, 0x03, on ? 0x01 : 0x00, 0x00, 0x00, 0x00, 0x00];
+      return new Uint8Array([...b, checksum(b)]);
+    },
+    buildColor(r, g, b) {
+      // 31 [r] [g] [b] 00 00 00 00 00 00 f0 0f CS
+      const bytes = [0x31, r, g, b, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xf0, 0x0f];
+      return new Uint8Array([...bytes, checksum(bytes)]);
+    },
+    buildPattern(id) {
+      // id=0x25 радуга, id=0x26 мигание
+      const b = [0x31, 0x00, 0x00, 0x00, 0x03, id, 0x00, 0x00, 0x00, 0x00, 0x00];
+      return new Uint8Array([...b, checksum(b)]);
+    }
+  },
+
+  // Triones / Happy Lighting — формат: 7E ... EF
+  triones: {
+    name: 'Triones',
+    services: [
+      '0000fff0-0000-1000-8000-00805f9b34fb',
+      '0000ffe0-0000-1000-8000-00805f9b34fb',
+      '0000ffe5-0000-1000-8000-00805f9b34fb'
+    ],
+    buildPower(on) {
+      return new Uint8Array([0x7E, 0x00, 0x04, on ? 0x01 : 0x00, 0x00, 0x00, 0x00, 0x00, 0xEF]);
+    },
+    buildColor(r, g, b) {
+      return new Uint8Array([0x7E, 0x00, 0x05, 0x03, r, g, b, 0x00, 0xEF]);
+    },
+    buildPattern(id) {
+      // 0x87 радуга, 0x88 мигание
+      return new Uint8Array([0x7E, 0x00, 0x03, id, 0x03, 0x00, 0x00, 0x00, 0xEF]);
+    }
+  }
+};
+
+function checksum(bytes) {
+  let s = 0;
+  for (const b of bytes) s = (s + b) & 0xFF;
+  return s;
+}
+
+function detectLedProfile(name) {
+  const n = (name || '').toLowerCase();
+  if (/lednet|zengge|wf\d|happy|elk|bledom/.test(n)) return 'zengge';
+  if (/triones|magic\s?light|happy\s?light/.test(n))   return 'triones';
+  return null;
+}
+
+/* ============================================================
    Определение типа устройства
    ============================================================ */
 function detectType(rawName) {
@@ -818,7 +928,7 @@ function detectType(rawName) {
   if (/\bbuds\b|\bearbud|\bearphone|\bheadphone|\bheadset|\bjbl\b|\bbose\b|\bsennheiser\b|\baudio.technica|\bwh-|\bwf-/.test(n)) return 'headphones';
   if (/\bspeaker\b|\bsoundbar\b|\becho\b|\bjbl\s?flip|\bjbl\s?charge/.test(n)) return 'speaker';
   if (/\btesla\b|\bbmw\b|\baudi\b|\btoyota\b|\bhonda\b|\bmercedes\b|\bvolvo\b|\bcar\b|\bauto\b|\bobd\b/.test(n)) return 'car';
-  if (/\bled\b|\blednet|\blight\b|\blamp\b|\bbulb\b|\bhue\b|\blifx\b|\byeelight\b|\bphilips\s?hue/.test(n)) return 'light';
+  if (/\blednet|\bled\b|\blight\b|\blamp\b|\bbulb\b|\bhue\b|\blifx\b|\byeelight\b|\bphilips\s?hue|\btriones/.test(n)) return 'light';
   if (/\btile\b|\btracker\b|\btag\b|\bchipolo\b/.test(n)) return 'tracker';
   if (/\bcam\b|\bcamera\b|\bgopro\b|\binsta360\b/.test(n)) return 'camera';
   if (/\bprint|\bepson\b|\bcanon\b|\bhp\s|\bdeskjet\b|\blaserjet\b/.test(n)) return 'printer';
@@ -875,7 +985,6 @@ function bytesToHex(dv) {
 
 function bytesToText(dv) {
   const bytes = new Uint8Array(dv.buffer, dv.byteOffset, dv.byteLength);
-  // Печатаемый ASCII?
   let printable = true;
   for (const b of bytes) {
     if (b < 32 && b !== 9 && b !== 10 && b !== 13) { printable = false; break; }
@@ -934,7 +1043,7 @@ function buildIconHtml(type) {
 }
 
 /* ============================================================
-   Карточка устройства
+   Карточка
    ============================================================ */
 function createCard(id, name) {
   const type = detectType(name);
@@ -1079,7 +1188,8 @@ function addDevice(device) {
     id, name, rssi: null, lastSeen: Date.now(),
     el, watching: false,
     type: detectType(name),
-    bleDevice: device
+    bleDevice: device,
+    ledProfile: detectLedProfile(name)
   };
   devices.set(id, entry);
 
@@ -1113,7 +1223,7 @@ async function startWatching(device, entry) {
 }
 
 /* ============================================================
-   Открытие панели управления
+   Панель
    ============================================================ */
 function openSheet(id) {
   const entry = devices.get(id);
@@ -1123,7 +1233,11 @@ function openSheet(id) {
   const { badge, label } = buildIconHtml(entry.type);
   sheetIcon.innerHTML = badge;
   sheetName.textContent = entry.name || 'Устройство без имени';
-  sheetSub.textContent = label + ' · ' + (entry.rssi !== null ? entry.rssi + ' дБм' : 'нет данных');
+
+  const profileName = entry.ledProfile ? LED_PROFILES[entry.ledProfile]?.name : null;
+  sheetSub.innerHTML = label +
+    ' · ' + (entry.rssi !== null ? entry.rssi + ' дБм' : 'нет данных') +
+    (profileName ? ` <span class="profile-badge">${profileName}</span>` : '');
 
   renderSheetBody();
 
@@ -1143,17 +1257,17 @@ closeSheet.addEventListener('click', closeSheetFn);
 backdrop.addEventListener('click', closeSheetFn);
 
 /* ============================================================
-   Рендер тела панели
+   Тело панели
    ============================================================ */
 function renderSheetBody() {
   const entry = activeEntry;
   if (!entry) return;
 
   const isConnected = connectedEntries.has(entry.id);
+  const profileName = entry.ledProfile ? LED_PROFILES[entry.ledProfile]?.name : null;
 
   let html = '';
 
-  // Кнопка подключения
   html += `
     <div class="conn-bar">
       <button class="conn-btn ${isConnected ? 'disconnect' : ''}" id="connBtn">
@@ -1166,7 +1280,6 @@ function renderSheetBody() {
     </div>
   `;
 
-  // Батарея
   html += `
     <div class="sec">
       <div class="sec-title">🔋 Батарея</div>
@@ -1181,7 +1294,6 @@ function renderSheetBody() {
     </div>
   `;
 
-  // Информация об устройстве
   html += `
     <div class="sec">
       <div class="sec-title">ℹ️ Информация</div>
@@ -1196,10 +1308,9 @@ function renderSheetBody() {
     </div>
   `;
 
-  // Управление умной лампой
   html += `
     <div class="sec">
-      <div class="sec-title">💡 Управление (умная лампа и др.)</div>
+      <div class="sec-title">💡 Управление${profileName ? ` · ${profileName}` : ''}</div>
       <div class="presets">
         <button class="preset on" data-cmd="on">
           <span class="preset-ico">💡</span>
@@ -1226,7 +1337,6 @@ function renderSheetBody() {
     </div>
   `;
 
-  // Сервисы и характеристики
   html += `
     <div class="sec">
       <div class="sec-title">⚙️ Сервисы и характеристики</div>
@@ -1236,7 +1346,6 @@ function renderSheetBody() {
     </div>
   `;
 
-  // Лог
   html += `
     <div class="sec">
       <div class="sec-title">📜 Журнал</div>
@@ -1246,7 +1355,6 @@ function renderSheetBody() {
 
   sheetBody.innerHTML = html;
 
-  // Начальные значения
   document.getElementById('infoName').textContent = entry.name || '—';
   document.getElementById('infoId').textContent = entry.id;
   document.getElementById('connBtn').addEventListener('click', toggleConnection);
@@ -1278,13 +1386,11 @@ function log(msg, type = '') {
   line.innerHTML = `<span class="t">${stamp}</span> ${escapeHtml(msg)}`;
   box.appendChild(line);
   box.scrollTop = box.scrollHeight;
-
-  // Ограничим количество строк
   while (box.children.length > 200) box.removeChild(box.firstChild);
 }
 
 /* ============================================================
-   Подключение / отключение
+   Подключение
    ============================================================ */
 async function toggleConnection() {
   const entry = activeEntry;
@@ -1323,7 +1429,6 @@ async function toggleConnection() {
     log('Подключено успешно', 'ok');
     showToast('Подключено', '🔗');
 
-    // Отслеживаем разрыв
     entry.bleDevice.addEventListener('gattserverdisconnected', () => {
       connectedEntries.delete(entry.id);
       activeServer = null;
@@ -1343,9 +1448,6 @@ async function toggleConnection() {
   }
 }
 
-/* ============================================================
-   Загрузка данных после подключения
-   ============================================================ */
 async function reloadData() {
   if (!activeServer) return;
   await readBattery();
@@ -1385,7 +1487,6 @@ async function readBattery() {
 
     log('Батарея: ' + pct + '%', 'ok');
 
-    // Подписка на обновления
     try {
       await ch.startNotifications();
       ch.addEventListener('characteristicvaluechanged', (e) => {
@@ -1397,12 +1498,12 @@ async function readBattery() {
   } catch (e) {
     numEl.textContent = '—';
     fillEl.style.width = '0%';
-    log('Батарея недоступна: ' + e.message, '');
+    log('Батарея недоступна', '');
   }
 }
 
 /* ============================================================
-   Инфо об устройстве
+   Device Information
    ============================================================ */
 async function readDeviceInfo() {
   if (!activeServer) return;
@@ -1422,7 +1523,6 @@ async function readDeviceInfo() {
         const dv = await ch.readValue();
         const txt = bytesToText(dv) || bytesToHex(dv);
         el.textContent = txt;
-        log(uuidName(ch.uuid) || charName, 'data');
       } catch (e) {
         el.textContent = '—';
       }
@@ -1433,7 +1533,7 @@ async function readDeviceInfo() {
 }
 
 /* ============================================================
-   Список сервисов и характеристик
+   Сервисы — с fallback через getPrimaryService()
    ============================================================ */
 async function listServices() {
   if (!activeServer) return;
@@ -1442,9 +1542,30 @@ async function listServices() {
   box.innerHTML = '<div class="empty-sec"><span class="loader"></span>Загружаю сервисы...</div>';
 
   try {
-    const services = await activeServer.getPrimaryServices();
+    let services = [];
+    try {
+      services = await activeServer.getPrimaryServices();
+    } catch (e) {
+      log('getPrimaryServices не сработал: ' + e.message, '');
+    }
+
+    // Если пусто — пробуем запросить каждый UUID напрямую
+    if (!services || services.length === 0) {
+      log('Список пуст, пробую напрямую по UUID...', 'info');
+      for (const uuid of KNOWN_SERVICES) {
+        try {
+          const svc = await activeServer.getPrimaryService(uuid);
+          if (svc) services.push(svc);
+        } catch (e) {
+          // Сервис недоступен — норм
+        }
+      }
+      log('Найдено через fallback: ' + services.length, 'info');
+    }
+
     if (services.length === 0) {
-      box.innerHTML = '<div class="empty-sec">Сервисы не найдены</div>';
+      box.innerHTML = '<div class="empty-sec" style="color:#f87171">Устройство не отдаёт сервисы. Возможно, требуется фирменное приложение или авторизация.</div>';
+      log('Сервисы не найдены ни одним способом', 'err');
       return;
     }
 
@@ -1471,13 +1592,12 @@ async function listServices() {
     }
     box.innerHTML = html;
 
-    // Обработчики раскрытия
     box.querySelectorAll('.service').forEach(svcEl => {
       const svcUuid = svcEl.dataset.uuid;
       const svc = services.find(s => s.uuid === svcUuid);
+      if (!svc) return;
       const head = svcEl.querySelector('.service-head');
       const charList = svcEl.querySelector('.char-list');
-      const svcId = charList.id;
 
       head.addEventListener('click', async () => {
         svcEl.classList.toggle('open');
@@ -1535,7 +1655,6 @@ async function loadCharacteristics(svc, container) {
     }
     container.innerHTML = html;
 
-    // Обработчики
     container.querySelectorAll('.char').forEach(charEl => {
       const chUuid = charEl.dataset.uuid;
       const ch = chars.find(c => c.uuid === chUuid);
@@ -1567,7 +1686,6 @@ async function loadCharacteristics(svc, container) {
             if (!val) return;
             try {
               let bytes;
-              // Пробуем как hex, если не получилось — как текст
               if (/^[0-9a-fA-F\s]+$/.test(val) && val.replace(/\s/g,'').length % 2 === 0) {
                 bytes = hexToBytes(val);
               } else {
@@ -1618,33 +1736,73 @@ async function loadCharacteristics(svc, container) {
 }
 
 /* ============================================================
-   Управление умной лампой — поиск writable характеристики
+   Поиск writable-характеристики с приоритетом профиля
    ============================================================ */
 async function findWritableCharacteristic() {
   if (!activeServer) return null;
-  try {
-    const services = await activeServer.getPrimaryServices();
-    // Приоритет — специфичные сервисы ламп
-    const preferred = ['fff0', 'ffe0', 'ffe5', 'ff01', 'fee7', '1912'];
-    let fallback = null;
 
-    for (const svc of services) {
-      const short = shortUuid(svc.uuid).toLowerCase().replace('0x', '');
-      const isPreferred = preferred.includes(short);
+  // 1) Пробуем сервисы из профиля устройства
+  const profileKey = activeEntry?.ledProfile;
+  const profile = profileKey ? LED_PROFILES[profileKey] : null;
+  const preferredServices = profile ? profile.services : [];
+
+  // 2) Пробуем получить сервисы
+  let services = [];
+  try {
+    services = await activeServer.getPrimaryServices();
+  } catch (e) {}
+
+  if (!services || services.length === 0) {
+    // Fallback — запрашиваем напрямую по UUID
+    const allUuids = [...new Set([
+      ...preferredServices,
+      '0000fff0-0000-1000-8000-00805f9b34fb',
+      '0000fff1-0000-1000-8000-00805f9b34fb',
+      '0000fff2-0000-1000-8000-00805f9b34fb',
+      '0000fff3-0000-1000-8000-00805f9b34fb',
+      '0000ffe0-0000-1000-8000-00805f9b34fb',
+      '0000ffe5-0000-1000-8000-00805f9b34fb',
+      '0000ff01-0000-1000-8000-00805f9b34fb',
+      '0000ff02-0000-1000-8000-00805f9b34fb',
+      '0000ff03-0000-1000-8000-00805f9b34fb',
+      '0000fee7-0000-1000-8000-00805f9b34fb'
+    ])];
+    for (const uuid of allUuids) {
       try {
-        const chars = await svc.getCharacteristics();
-        for (const ch of chars) {
-          if (ch.properties.write || ch.properties.writeWithoutResponse) {
-            if (isPreferred) return ch;
-            if (!fallback) fallback = ch;
-          }
-        }
+        const svc = await activeServer.getPrimaryService(uuid);
+        if (svc) services.push(svc);
       } catch (e) {}
     }
-    return fallback;
-  } catch (e) {
-    return null;
+    log('Fallback-поиск сервисов: ' + services.length, 'info');
   }
+
+  if (!services || services.length === 0) return null;
+
+  // 3) Отдаём приоритет сервисам из профиля
+  const sortedServices = [...services].sort((a, b) => {
+    const aP = preferredServices.includes(a.uuid) ? 0 : 1;
+    const bP = preferredServices.includes(b.uuid) ? 0 : 1;
+    return aP - bP;
+  });
+
+  let firstWritable = null;
+  for (const svc of sortedServices) {
+    try {
+      const chars = await svc.getCharacteristics();
+      for (const ch of chars) {
+        if (ch.properties.write || ch.properties.writeWithoutResponse) {
+          if (preferredServices.includes(svc.uuid)) {
+            log('Writable: ' + shortUuid(svc.uuid) + ' / ' + shortUuid(ch.uuid), 'ok');
+            return ch;
+          }
+          if (!firstWritable) firstWritable = ch;
+        }
+      }
+    } catch (e) {}
+  }
+
+  if (firstWritable) log('Writable (fallback): ' + shortUuid(firstWritable.uuid), 'ok');
+  return firstWritable;
 }
 
 async function writeToChar(ch, bytes) {
@@ -1661,11 +1819,15 @@ async function writeToChar(ch, bytes) {
   }
 }
 
+/* ============================================================
+   Пресеты управления
+   ============================================================ */
 async function sendPreset(cmd) {
-  if (!activeServer) {
-    showToast('Сначала подключись', '⚠️');
-    return;
-  }
+  if (!activeServer) { showToast('Сначала подключись', '⚠️'); return; }
+
+  const profileKey = activeEntry?.ledProfile || 'triones';
+  const profile = LED_PROFILES[profileKey];
+  if (!profile) { showToast('Профиль неизвестен', '⚠️'); return; }
 
   const ch = await findWritableCharacteristic();
   if (!ch) {
@@ -1674,46 +1836,48 @@ async function sendPreset(cmd) {
     return;
   }
 
-  // Универсальные команды (подходят для большинства дешёвых LED-контроллеров)
-  const COMMANDS = {
-    on:      [0x7E, 0x00, 0x04, 0x01, 0x00, 0x00, 0x00, 0x00, 0xEF],
-    off:     [0x7E, 0x00, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0xEF],
-    rainbow: [0x7E, 0x00, 0x05, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0xEF],
-    blink:   [0x7E, 0x00, 0x04, 0x02, 0x00, 0x00, 0x00, 0x00, 0xEF]
-  };
+  let bytes;
+  let label;
+  if (cmd === 'on')       { bytes = profile.buildPower(true);   label = 'Включение'; }
+  else if (cmd === 'off') { bytes = profile.buildPower(false);  label = 'Выключение'; }
+  else if (cmd === 'rainbow') { bytes = profile.buildPattern(0x25); label = 'Радуга'; }
+  else if (cmd === 'blink')   { bytes = profile.buildPattern(0x26); label = 'Мигание'; }
+  else return;
 
-  const arr = COMMANDS[cmd] || COMMANDS.on;
-  const bytes = new Uint8Array(arr);
+  log(`${label} → ${shortUuid(ch.uuid)}  (${bytesToHex(bytes.buffer)})`, 'info');
   const ok = await writeToChar(ch, bytes);
   if (ok) {
-    const names = { on: 'Включение', off: 'Выключение', rainbow: 'Радуга', blink: 'Мигание' };
-    log(names[cmd] + ' → ' + shortUuid(ch.uuid), 'ok');
-    showToast(names[cmd], '💡');
+    log(label + ' отправлено', 'ok');
+    showToast(label, '💡');
   }
 }
 
 async function sendColor(hex) {
   if (!activeServer) { showToast('Сначала подключись', '⚠️'); return; }
 
+  const profileKey = activeEntry?.ledProfile || 'triones';
+  const profile = LED_PROFILES[profileKey];
+  if (!profile) return;
+
   const ch = await findWritableCharacteristic();
   if (!ch) { showToast('Нет доступных команд', '⚠️'); return; }
 
-  // Парсим hex "#RRGGBB"
   const r = parseInt(hex.slice(1,3), 16);
   const g = parseInt(hex.slice(3,5), 16);
   const b = parseInt(hex.slice(5,7), 16);
 
-  // Формат ELK-BLEDOM / аналогов
-  const bytes = new Uint8Array([0x7E, 0x00, 0x05, 0x03, r, g, b, 0x00, 0xEF]);
+  const bytes = profile.buildColor(r, g, b);
+  log(`Цвет RGB(${r},${g},${b}) → ${shortUuid(ch.uuid)}`, 'info');
+  log('Байты: ' + bytesToHex(bytes.buffer), 'data');
   const ok = await writeToChar(ch, bytes);
   if (ok) {
-    log(`Цвет RGB(${r},${g},${b}) → ${shortUuid(ch.uuid)}`, 'ok');
+    log('Цвет применён', 'ok');
     showToast('Цвет применён', '🎨');
   }
 }
 
 /* ============================================================
-   Кнопка сканирования
+   Сканирование
    ============================================================ */
 btn.addEventListener('click', async () => {
   statusEl.className = 'status';
@@ -1733,33 +1897,7 @@ btn.addEventListener('click', async () => {
   try {
     const device = await navigator.bluetooth.requestDevice({
       acceptAllDevices: true,
-      optionalServices: [
-        'generic_access',
-        'generic_attribute',
-        'device_information',
-        'battery_service',
-        'heart_rate',
-        'health_thermometer',
-        'environmental_sensing',
-        'user_data',
-        'current_time',
-        'tx_power',
-        'link_loss',
-        'immediate_alert',
-        'blood_pressure',
-        'weight_scale',
-        'glucose',
-        'cycling_speed_and_cadence',
-        'running_speed_and_cadence',
-        'human_interface_device',
-        '0000ffe0-0000-1000-8000-00805f9b34fb',
-        '0000ffe5-0000-1000-8000-00805f9b34fb',
-        '0000fff0-0000-1000-8000-00805f9b34fb',
-        '0000ff01-0000-1000-8000-00805f9b34fb',
-        '0000fee7-0000-1000-8000-00805f9b34fb',
-        '0000fe59-0000-1000-8000-00805f9b34fb',
-        '00010203-0405-0607-0809-0a0b0c0d1912'
-      ]
+      optionalServices: KNOWN_SERVICES
     });
 
     radarEl.classList.remove('on');
@@ -1814,9 +1952,6 @@ clearBtn.addEventListener('click', () => {
   statusEl.className = 'status';
 });
 
-/* ============================================================
-   Таймер
-   ============================================================ */
 setInterval(() => {
   for (const e of devices.values()) updateCard(e);
   refreshStats();
