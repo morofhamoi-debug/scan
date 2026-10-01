@@ -845,8 +845,6 @@ const KNOWN_SERVICES = [
    Профили LED-контроллеров
    ============================================================ */
 const LED_PROFILES = {
-  // Zengge / LEDnetWF — формат: 31 00 00 00 [cmd] [params...] CS
-  // Проверка: CS = сумма всех байт до него mod 256
   zengge: {
     name: 'Zengge / LEDnet',
     services: [
@@ -855,23 +853,19 @@ const LED_PROFILES = {
       '0000ffe5-0000-1000-8000-00805f9b34fb'
     ],
     buildPower(on) {
-      // 31 00 00 00 03 [01|00] 00 00 00 00 CS
       const b = [0x31, 0x00, 0x00, 0x00, 0x03, on ? 0x01 : 0x00, 0x00, 0x00, 0x00, 0x00];
       return new Uint8Array([...b, checksum(b)]);
     },
     buildColor(r, g, b) {
-      // 31 [r] [g] [b] 00 00 00 00 00 00 f0 0f CS
       const bytes = [0x31, r, g, b, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xf0, 0x0f];
       return new Uint8Array([...bytes, checksum(bytes)]);
     },
     buildPattern(id) {
-      // id=0x25 радуга, id=0x26 мигание
       const b = [0x31, 0x00, 0x00, 0x00, 0x03, id, 0x00, 0x00, 0x00, 0x00, 0x00];
       return new Uint8Array([...b, checksum(b)]);
     }
   },
 
-  // Triones / Happy Lighting — формат: 7E ... EF
   triones: {
     name: 'Triones',
     services: [
@@ -886,7 +880,6 @@ const LED_PROFILES = {
       return new Uint8Array([0x7E, 0x00, 0x05, 0x03, r, g, b, 0x00, 0xEF]);
     },
     buildPattern(id) {
-      // 0x87 радуга, 0x88 мигание
       return new Uint8Array([0x7E, 0x00, 0x03, id, 0x03, 0x00, 0x00, 0x00, 0xEF]);
     }
   }
@@ -1533,7 +1526,7 @@ async function readDeviceInfo() {
 }
 
 /* ============================================================
-   Сервисы — с fallback через getPrimaryService()
+   Сервисы — с fallback через getPrimaryService() (Исправлено)
    ============================================================ */
 async function listServices() {
   if (!activeServer) return;
@@ -1549,15 +1542,17 @@ async function listServices() {
       log('getPrimaryServices не сработал: ' + e.message, '');
     }
 
-    // Если пусто — пробуем запросить каждый UUID напрямую
+    // Если список пуст — принудительно опрашиваем каждый известный UUID по отдельности
     if (!services || services.length === 0) {
       log('Список пуст, пробую напрямую по UUID...', 'info');
       for (const uuid of KNOWN_SERVICES) {
         try {
           const svc = await activeServer.getPrimaryService(uuid);
-          if (svc) services.push(svc);
+          if (svc && !services.some(s => s.uuid === svc.uuid)) {
+            services.push(svc);
+          }
         } catch (e) {
-          // Сервис недоступен — норм
+          // Сервис недоступен — пропускаем
         }
       }
       log('Найдено через fallback: ' + services.length, 'info');
@@ -1741,19 +1736,16 @@ async function loadCharacteristics(svc, container) {
 async function findWritableCharacteristic() {
   if (!activeServer) return null;
 
-  // 1) Пробуем сервисы из профиля устройства
   const profileKey = activeEntry?.ledProfile;
   const profile = profileKey ? LED_PROFILES[profileKey] : null;
   const preferredServices = profile ? profile.services : [];
 
-  // 2) Пробуем получить сервисы
   let services = [];
   try {
     services = await activeServer.getPrimaryServices();
   } catch (e) {}
 
   if (!services || services.length === 0) {
-    // Fallback — запрашиваем напрямую по UUID
     const allUuids = [...new Set([
       ...preferredServices,
       '0000fff0-0000-1000-8000-00805f9b34fb',
@@ -1770,15 +1762,13 @@ async function findWritableCharacteristic() {
     for (const uuid of allUuids) {
       try {
         const svc = await activeServer.getPrimaryService(uuid);
-        if (svc) services.push(svc);
+        if (svc && !services.some(s => s.uuid === svc.uuid)) services.push(svc);
       } catch (e) {}
     }
-    log('Fallback-поиск сервисов: ' + services.length, 'info');
   }
 
   if (!services || services.length === 0) return null;
 
-  // 3) Отдаём приоритет сервисам из профиля
   const sortedServices = [...services].sort((a, b) => {
     const aP = preferredServices.includes(a.uuid) ? 0 : 1;
     const bP = preferredServices.includes(b.uuid) ? 0 : 1;
